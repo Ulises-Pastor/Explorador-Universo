@@ -1,4 +1,4 @@
-# explorador_universo
+# Explorador del Universo
 
 A new Flutter project.
 

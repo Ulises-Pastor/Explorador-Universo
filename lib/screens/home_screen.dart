@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/apod.dart';
 import '../services/nasa_api_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -11,13 +10,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<Apod> _apodFuture;
+  bool isFavorite = false;
 
   @override
   void initState() {
     super.initState();
     final nasaService = Provider.of<NasaApiService>(context, listen: false);
-    _apodFuture = nasaService.fetchApod();
+    if (!nasaService.cargado) {
+      nasaService.fetchApod();
+    }
   }
 
   @override
@@ -25,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Explorador del Universo",
+          "Imagen del dia",
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -33,61 +34,84 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color.fromARGB(
-          255,
-          37,
-          0,
-          37,
-        ), // Color de fondo personalizado
-        elevation: 4, // Sombra del AppBar
-        leading: const Icon(
-          Icons.public,
-          color: Colors.white,
-        ), // Ícono a la izquierda
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.favorite_border, color: Colors.white),
-            onPressed: () {
-              // Acción para favoritos
-            },
-          ),
-        ],
+        elevation: 0, // Sombra del AppBar
+        actions: [],
       ),
-      body: FutureBuilder<Apod>(
-        future: _apodFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            final apod = snapshot.data!;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Imagen del Día',
-                    style: Theme.of(context).textTheme.headlineMedium,
+      body: Consumer<NasaApiService>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return Center(child: CircularProgressIndicator());
+          } else if (!provider.cargado) {
+            return Center(
+              child: Text('No se ha podido cargar la imagen del dia'),
+            );
+          }
+          if (provider.cargado) {
+            return Scaffold(
+              floatingActionButton: FloatingActionButton(
+                backgroundColor: const Color.fromARGB(
+                  184,
+                  64,
+                  11,
+                  75,
+                ), // o el color que prefieras
+                onPressed: () async {
+                  await Provider.of<NasaApiService>(
+                    context,
+                    listen: false,
+                  ).toggleFavoriteStatus(provider.apodDeHoy);
+                  setState(() {
+                    isFavorite = !isFavorite;
+                  });
+                },
+                child: AnimatedSwitcher(
+                  duration: Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) {
+                    return ScaleTransition(scale: animation, child: child);
+                  },
+                  child: Icon(
+                    provider.favoritesApod.contains(provider.apodDeHoy)
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    key: ValueKey<bool>(
+                      provider.favoritesApod.contains(provider.apodDeHoy),
+                    ),
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(apod.imageUrl),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    apod.title,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(apod.explanation),
-                ],
+                ),
+              ),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      provider.apodDeHoy.title,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(provider.apodDeHoy.imageUrl),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      provider.apodDeHoy.explanation,
+                      style: TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 20), // deja espacio para el FAB
+                  ],
+                ),
               ),
             );
           } else {
-            return const Center(child: Text('No se pudo cargar la imagen.'));
+            return Center(
+              child: Text('No se ha podido cargar la imagen del dia'),
+            );
           }
         },
       ),

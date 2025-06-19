@@ -38,6 +38,7 @@ dependencies:
   translator: ^1.0.3+1
   provider: ^6.1.5
   google_fonts: ^6.2.1
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -52,6 +53,11 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png" # ← usa tu imagen aquí
 
 # The following section is specific to Flutter packages.
 flutter:
